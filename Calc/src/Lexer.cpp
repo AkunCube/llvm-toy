@@ -33,7 +33,7 @@ void Lexer::next(Token &token) {
     llvm::StringRef name(bufferPtr, end - bufferPtr);
     Token::TokenKind kind =
         name == kWith ? Token::TokenKind::KW_with : Token::TokenKind::ident;
-    formToken(token, end, Token::TokenKind::ident);
+    formToken(token, end, kind);
     return;
   }
 
