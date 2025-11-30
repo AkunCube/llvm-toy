@@ -3,5 +3,8 @@
 #endif
 
 DIAG(err_sym_declared, Error, "symbol {0} already declared")
+DIAG(err_hex_digit_in_decimal, Error, "decimal number contains hex digit")
+DIAG(err_unterminated_char_or_string, Error, "missing terminating character")
+DIAG(err_unterminated_block_comment, Error, "unterminated (* comment")
 
 #undef DIAG

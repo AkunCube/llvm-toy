@@ -4,4 +4,5 @@ add_executable(tinylang
 target_link_libraries(tinylang PRIVATE
   ${llvm_libs}
   TinyLangBasic
+  TinyLangLexer
 )
