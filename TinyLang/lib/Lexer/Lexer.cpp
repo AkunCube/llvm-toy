@@ -163,7 +163,6 @@ void Lexer::number(Token &result) {
 }
 
 void Lexer::string(Token &result) {
-  const char *start = curPtr;
   const char *end = curPtr + 1;
   char quoteChar = *curPtr;
   while (*end && *end != quoteChar && !charinfo::isVerticalWhitespace(*end)) {

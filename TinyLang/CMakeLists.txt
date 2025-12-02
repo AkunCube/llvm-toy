@@ -5,6 +5,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
+if(MSVC)
+    add_compile_options(/W4 /WX)
+else()
+    add_compile_options(
+        -Werror
+        -Wall
+        -Wextra
+        -Wpedantic
+    )
+endif()
+
+
 find_package(LLVM REQUIRED CONFIG)
 message("Found LLVM ${LLVM_PACKAGE_VERSION}, build type ${LLVM_BUILD_TYPE}")
 list(APPEND CMAKE_MODULE_PATH ${LLVM_DIR})
