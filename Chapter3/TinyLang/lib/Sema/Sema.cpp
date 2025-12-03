@@ -275,7 +275,8 @@ Expr *Sema::actOnSimpleExpression(Expr *left, Expr *right,
   if (!right) {
     return left;
   }
-  if (left->getType() != right->getType()) {
+  if (left->getType() != right->getType() ||
+      !isOperatorForType(op.getKind(), left->getType())) {
     diagEngine.report(op.getLocation(),
                       diag::err_types_for_operator_not_compatible,
                       tok::getPunctuatorSpelling(op.getKind()));
