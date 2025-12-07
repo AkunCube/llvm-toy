@@ -199,8 +199,15 @@ void Sema::actOnAssignment(StmtList &stmts, SMLoc loc, Decl *d, Expr *e) {
     } else {
       stmts.push_back(new AssignmentStatement(var, e));
     }
-  } else {
-    // TODO: implement this.
+  } else if (auto *fp = dyn_cast_or_null<FormalParameterDeclaration>(d)) {
+    if (fp->getType() != e->getType()) {
+      diagEngine.report(loc, diag::err_types_for_operator_not_compatible,
+                        tok::getPunctuatorSpelling(tok::TokenKind::colonequal));
+    } else {
+      stmts.push_back(new AssignmentStatement(fp, e));
+    }
+  } else if (d) {
+    diagEngine.report(loc, diag::err_not_yet_implemented, "other assignments");
   }
 }
 

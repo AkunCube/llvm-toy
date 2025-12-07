@@ -279,7 +279,7 @@ public:
   ConstantAccess(ConstantDeclaration *c)
       : Expr(EK_Const, c->getExpr()->getType(), true), c(c) {}
 
-  ConstantDeclaration *geDecl() { return c; }
+  ConstantDeclaration *getDecl() { return c; }
 
   static bool classof(const Expr *E) { return E->getKind() == EK_Const; }
 
@@ -318,16 +318,15 @@ private:
 
 class AssignmentStatement : public Stmt {
 public:
-  AssignmentStatement(VariableDeclaration *var, Expr *e)
-      : Stmt(SK_Assign), var(var), e(e) {}
+  AssignmentStatement(Decl *var, Expr *e) : Stmt(SK_Assign), var(var), e(e) {}
 
-  VariableDeclaration *getVar() { return var; }
+  Decl *getVar() { return var; }
   Expr *getExpr() { return e; }
 
   static bool classof(const Stmt *S) { return S->getKind() == SK_Assign; }
 
 private:
-  VariableDeclaration *var;
+  Decl *var;
   Expr *e;
 };
 
