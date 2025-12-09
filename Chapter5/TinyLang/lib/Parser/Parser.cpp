@@ -184,6 +184,16 @@ bool Parser::parseDeclaration(DeclList &decls) {
     if (consume(tok::TokenKind::semi)) {
       return errorhandler();
     }
+  } else if (token.is(tok::TokenKind::KW_TYPE)) {
+    advance();
+    while (token.is(tok::TokenKind::identifier)) {
+      if (parseTypeDeclaration(decls)) {
+        return errorhandler();
+      }
+      if (consume(tok::TokenKind::semi)) {
+        return errorhandler();
+      }
+    }
   } else {
     // ERROR
     return errorhandler();
@@ -771,5 +781,114 @@ bool Parser::parseIdentList(IdentList &ids) {
     advance();
   }
 
+  return false;
+}
+
+bool Parser::parseTypeDeclaration(DeclList &decls) {
+  auto errorhandler = [&] { return skipUntil(tok::TokenKind::semi); };
+
+  if (expect(tok::TokenKind::identifier)) {
+    return errorhandler();
+  }
+
+  SMLoc loc = token.getLocation();
+  StringRef name = token.getIdentifier();
+
+  if (consume(tok::TokenKind::equal)) {
+    return errorhandler();
+  }
+
+  if (token.is(tok::TokenKind::KW_RECORD)) {
+    FieldList fields;
+    advance();
+    if (parseFieldList(fields)) {
+      return errorhandler();
+    }
+    if (consume(tok::TokenKind::KW_END)) {
+      return errorhandler();
+    }
+    actions.actOnRecordTypeDeclaration(decls, loc, name, fields);
+    return false;
+  }
+
+  if (token.is(tok::TokenKind::KW_POINTER)) {
+    advance();
+    if (consume(tok::TokenKind::KW_TO)) {
+      return errorhandler();
+    }
+    Decl *baseType = nullptr;
+    if (parseQualident(baseType)) {
+      return errorhandler();
+    }
+    actions.actOnPointerTypeDeclaration(decls, loc, name, baseType);
+    return false;
+  }
+
+  if (token.is(tok::TokenKind::KW_ARRAY)) {
+    // TYPE arrayType = ARRAY '[' expr ]' OF <type>;
+    advance();
+    if (consume(tok::TokenKind::l_square)) {
+      return errorhandler();
+    }
+    Expr *expr = nullptr;
+    if (parseExpression(expr)) {
+      return errorhandler();
+    }
+    if (consume(tok::TokenKind::r_square)) {
+      return errorhandler();
+    }
+    if (consume(tok::TokenKind::KW_OF)) {
+      return errorhandler();
+    }
+    Decl *baseType = nullptr;
+    if (parseQualident(baseType)) {
+      return errorhandler();
+    }
+    actions.actOnArrayTypeDeclaration(decls, loc, name, expr, baseType);
+    return false;
+  }
+
+  if (token.is(tok::TokenKind::identifier)) {
+    // Alias type: TYPE aliasType = <type>;
+    Decl *baseType = nullptr;
+    if (parseQualident(baseType)) {
+      return errorhandler();
+    }
+    actions.actOnAliasTypeDeclaration(decls, loc, name, baseType);
+    return false;
+  }
+  return errorhandler();
+}
+
+bool Parser::parseFieldList(FieldList &fields) {
+  auto errorhandler = [&] { return skipUntil(tok::TokenKind::KW_END); };
+  if (parseField(fields)) {
+    return errorhandler();
+  }
+  while (token.is(tok::TokenKind::semi)) {
+    advance();
+    if (parseField(fields)) {
+      return errorhandler();
+    }
+  }
+
+  return false;
+}
+
+bool Parser::parseField(FieldList &fields) {
+  auto errorhandler = [&] { return skipUntil(tok::TokenKind::KW_END); };
+
+  IdentList ids;
+  Decl *typeDecl = nullptr;
+  if (parseIdentList(ids)) {
+    return errorhandler();
+  }
+  if (consume(tok::TokenKind::colon)) {
+    return errorhandler();
+  }
+  if (parseQualident(typeDecl)) {
+    return errorhandler();
+  }
+  actions.actOnFieldDeclaration(fields, ids, typeDecl);
   return false;
 }

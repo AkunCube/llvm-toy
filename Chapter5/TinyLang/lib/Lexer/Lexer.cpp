@@ -87,6 +87,9 @@ void Lexer::next(Token &result) {
     CASE('.', tok::period);
     CASE(';', tok::semi);
     CASE(')', tok::r_paren);
+    CASE('^', tok::caret);
+    CASE('[', tok::l_square);
+    CASE(']', tok::r_square);
 #undef CASE
     case '(':
       if (*(curPtr + 1) == '*') {

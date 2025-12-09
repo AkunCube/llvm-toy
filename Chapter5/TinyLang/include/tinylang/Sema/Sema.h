@@ -23,6 +23,16 @@ public:
   void actOnImport(StringRef moduleName, IdentList &ids);
   void actOnConstantDeclaration(DeclList &decls, SMLoc loc, StringRef name,
                                 Expr *e);
+  void actOnAliasTypeDeclaration(DeclList &decls, SMLoc loc, StringRef name,
+                                 Decl *d);
+  void actOnArrayTypeDeclaration(DeclList &decls, SMLoc loc, StringRef name,
+                                 Expr *e, Decl *d);
+  void actOnPointerTypeDeclaration(DeclList &decls, SMLoc loc, StringRef name,
+                                   Decl *d);
+  void actOnFieldDeclaration(FieldList &fields, IdentList &ids, Decl *d);
+  void actOnRecordTypeDeclaration(DeclList &decls, SMLoc loc, StringRef name,
+                                  const FieldList &fields);
+
   void actOnVariableDeclaration(DeclList &decls, IdentList &ids, Decl *d);
   void actOnFormalParameterDeclaration(FormalParamList &params, IdentList &ids,
                                        Decl *d, bool isVar);

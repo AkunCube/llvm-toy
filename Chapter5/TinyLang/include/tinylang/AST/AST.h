@@ -16,11 +16,29 @@ class Decl;
 class FormalParameterDeclaration;
 class Expr;
 class Stmt;
+class TypeDeclaration;
+class Field;
 
 using DeclList = std::vector<Decl *>;
 using FormalParamList = std::vector<FormalParameterDeclaration *>;
 using ExprList = std::vector<Expr *>;
 using StmtList = std::vector<Stmt *>;
+using FieldList = std::vector<Field *>;
+
+class Field {
+
+public:
+  Field(SMLoc loc, StringRef name, TypeDeclaration *type)
+      : loc(loc), name(name), type(type) {}
+  SMLoc getLocation() const { return loc; }
+  StringRef getName() const { return name; }
+  TypeDeclaration *getType() const { return type; }
+
+private:
+  SMLoc loc;
+  StringRef name;
+  TypeDeclaration *type;
+};
 
 class Ident {
 public:
@@ -37,7 +55,18 @@ using IdentList = std::vector<std::pair<SMLoc, StringRef>>;
 
 class Decl {
 public:
-  enum DeclKind { DK_Module, DK_Const, DK_Type, DK_Var, DK_Param, DK_Proc };
+  enum DeclKind {
+    DK_Module,
+    DK_Const,
+    DK_AliasType,
+    DK_ArrayType,
+    DK_PervasiveType,
+    DK_PointerType,
+    DK_RecordType,
+    DK_Var,
+    DK_Param,
+    DK_Proc
+  };
   Decl(DeclKind kind, Decl *enclosingDecl, SMLoc loc, StringRef name)
       : kind(kind), enclosingDecl(enclosingDecl), loc(loc), name(name) {}
   DeclKind getKind() const { return kind; }
@@ -90,10 +119,80 @@ private:
 
 class TypeDeclaration : public Decl {
 public:
-  TypeDeclaration(Decl *enclosingDecL, SMLoc loc, StringRef name)
-      : Decl(DK_Type, enclosingDecL, loc, name) {}
+  TypeDeclaration(DeclKind kind, Decl *enclosingDecL, SMLoc loc, StringRef name)
+      : Decl(kind, enclosingDecL, loc, name) {}
 
-  static bool classof(const Decl *D) { return D->getKind() == DK_Type; }
+  static bool classof(const Decl *D) {
+    return D->getKind() >= DK_AliasType && D->getKind() <= DK_RecordType;
+  }
+};
+
+class ArrayTypeDeclaration : public TypeDeclaration {
+public:
+  ArrayTypeDeclaration(Decl *enclosingDecl, SMLoc loc, StringRef name,
+                       Expr *nums, TypeDeclaration *elemType)
+      : TypeDeclaration(DK_ArrayType, enclosingDecl, loc, name), nums(nums),
+        elemType(elemType) {}
+
+  Expr *getNums() const { return nums; }
+  TypeDeclaration *getElemType() const { return elemType; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_ArrayType; }
+
+private:
+  Expr *nums;
+  TypeDeclaration *elemType;
+};
+
+class PointerTypeDeclaration : public TypeDeclaration {
+public:
+  PointerTypeDeclaration(Decl *enclosingDecl, SMLoc loc, StringRef name,
+                         TypeDeclaration *pointedType)
+      : TypeDeclaration(DK_PointerType, enclosingDecl, loc, name),
+        pointedType(pointedType) {}
+
+  TypeDeclaration *getPointedType() const { return pointedType; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_PointerType; }
+
+private:
+  TypeDeclaration *pointedType;
+};
+
+class RecordTypeDeclaration : public TypeDeclaration {
+public:
+  RecordTypeDeclaration(Decl *enclosingDecl, SMLoc loc, StringRef name,
+                        const FieldList &fields)
+      : TypeDeclaration(DK_RecordType, enclosingDecl, loc, name),
+        fields(fields) {}
+
+  const FieldList &getFields() const { return fields; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_RecordType; }
+
+private:
+  FieldList fields;
+};
+
+class AliasTypeDeclaration : public TypeDeclaration {
+public:
+  AliasTypeDeclaration(Decl *enclosingDecl, SMLoc loc, StringRef name,
+                       TypeDeclaration *baseType)
+      : TypeDeclaration(DK_AliasType, enclosingDecl, loc, name),
+        baseType(baseType) {}
+
+  TypeDeclaration *getType() const { return baseType; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_AliasType; }
+
+private:
+  TypeDeclaration *baseType;
+};
+
+class PervasiveTypeDeclaration : public TypeDeclaration {
+public:
+  PervasiveTypeDeclaration(Decl *enclosingDecl, SMLoc loc, StringRef name)
+      : TypeDeclaration(DK_PervasiveType, enclosingDecl, loc, name) {}
+
+  static bool classof(const Decl *D) {
+    return D->getKind() == DK_PervasiveType;
+  }
 };
 
 class VariableDeclaration : public Decl {

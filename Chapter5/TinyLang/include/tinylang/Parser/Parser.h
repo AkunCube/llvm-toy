@@ -69,6 +69,9 @@ private:
   bool parseBlock(DeclList &decls, StmtList &stmts);
   bool parseDeclaration(DeclList &decls);
   bool parseConstantDeclaration(DeclList &decls);
+  bool parseTypeDeclaration(DeclList &decls);
+  bool parseFieldList(FieldList &fields);
+  bool parseField(FieldList &fields);
   bool parseVariableDeclaration(DeclList &decls);
   bool parseProcedureDeclaration(DeclList &parentDecls);
   bool parseFormalParameters(FormalParamList &params, Decl *&retType);

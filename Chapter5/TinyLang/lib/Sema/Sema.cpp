@@ -6,6 +6,7 @@
 #include "tinylang/Sema/Scope.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/APSInt.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/Support/SMLoc.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -67,8 +68,8 @@ void Sema::initialize() {
   // Setup global scope.
   currScope = new Scope();
   currDecl = nullptr;
-  intType = new TypeDeclaration(currDecl, SMLoc(), "INTEGER");
-  boolType = new TypeDeclaration(currDecl, SMLoc(), "BOOLEAN");
+  intType = new PervasiveTypeDeclaration(currDecl, SMLoc(), "INTEGER");
+  boolType = new PervasiveTypeDeclaration(currDecl, SMLoc(), "BOOLEAN");
   trueLiteral = new BooleanLiteral(true, boolType);
   falseLiteral = new BooleanLiteral(false, boolType);
   trueConst = new ConstantDeclaration(currDecl, SMLoc(), "TRUE", trueLiteral);
@@ -431,4 +432,92 @@ Decl *Sema::actOnQualIdentPart(Decl *prev, SMLoc loc, StringRef name) {
 
   diagEngine.report(loc, diag::err_undeclared_name, name);
   return nullptr;
+}
+
+void Sema::actOnRecordTypeDeclaration(DeclList &decls, SMLoc loc,
+                                      StringRef name, const FieldList &fields) {
+  assert(currScope && "CurrentScope not set");
+  llvm::StringSet<> fieldNames;
+  for (const auto &field : fields) {
+    if (!fieldNames.insert(field->getName()).second) {
+      diagEngine.report(field->getLocation(), diag::err_symbold_declared,
+                        field->getName());
+    }
+  }
+
+  RecordTypeDeclaration *recordType =
+      new RecordTypeDeclaration(currDecl, loc, name, fields);
+  if (currScope->insert(recordType)) {
+    decls.push_back(recordType);
+  } else {
+    diagEngine.report(loc, diag::err_symbold_declared, name);
+  }
+}
+
+void Sema::actOnFieldDeclaration(FieldList &fields, IdentList &ids, Decl *d) {
+  assert(currScope && "CurrentScope not set");
+  if (auto *type = dyn_cast_or_null<TypeDeclaration>(d)) {
+    for (auto &[loc, name] : ids) {
+      fields.push_back(new Field(loc, name, type));
+    }
+  } else if (!ids.empty()) {
+    SMLoc loc = ids.front().first;
+    diagEngine.report(loc, diag::err_vardecl_requires_type);
+  }
+}
+
+void Sema::actOnPointerTypeDeclaration(DeclList &decls, SMLoc loc,
+                                       StringRef name, Decl *d) {
+  assert(currScope && "CurrentScope not set");
+  if (!isa_and_nonnull<TypeDeclaration>(d)) {
+    diagEngine.report(loc, diag::err_vardecl_requires_type, name);
+    return;
+  }
+
+  TypeDeclaration *pointeeType = cast<TypeDeclaration>(d);
+  PointerTypeDeclaration *pointerType =
+      new PointerTypeDeclaration(currDecl, loc, name, pointeeType);
+  if (currScope->insert(pointeeType)) {
+    decls.push_back(pointerType);
+  } else {
+    diagEngine.report(loc, diag::err_symbold_declared);
+  }
+}
+
+void Sema::actOnAliasTypeDeclaration(DeclList &decls, SMLoc loc, StringRef name,
+                                     Decl *d) {
+  assert(currScope && "CurrentScope not set");
+  if (!isa_and_nonnull<TypeDeclaration>(d)) {
+    diagEngine.report(loc, diag::err_vardecl_requires_type);
+  }
+  TypeDeclaration *baseType = cast<TypeDeclaration>(d);
+  AliasTypeDeclaration *aliasType =
+      new AliasTypeDeclaration(currDecl, loc, name, baseType);
+  if (currScope->insert(aliasType)) {
+    decls.push_back(aliasType);
+  } else {
+    diagEngine.report(loc, diag::err_symbold_declared);
+  }
+}
+
+void Sema::actOnArrayTypeDeclaration(DeclList &decls, SMLoc loc, StringRef name,
+                                     Expr *e, Decl *d) {
+  assert(currScope && "CurrentScope not set");
+  if (!e || !e->isConstant() || e->getType()->getName() != "INTEGER") {
+    assert(false && "Array size expression must be a constant integer");
+    return;
+  }
+
+  if (!isa_and_nonnull<TypeDeclaration>(d)) {
+    diagEngine.report(loc, diag::err_vardecl_requires_type);
+    return;
+  }
+  TypeDeclaration *baseType = cast<TypeDeclaration>(d);
+  ArrayTypeDeclaration *arrayType =
+      new ArrayTypeDeclaration(currDecl, loc, name, e, baseType);
+  if (currScope->insert(arrayType)) {
+    decls.push_back(arrayType);
+  } else {
+    diagEngine.report(loc, diag::err_symbold_declared);
+  }
 }
